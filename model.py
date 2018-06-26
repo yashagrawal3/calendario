@@ -15,11 +15,11 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import gtk
-import pygtk
+import gi
+from gi.repository import Gtk
 from gettext import gettext as _
 import logging
-import gobject
+from gi.repository import GObject
 import calendario
 log = logging.getLogger('Calendario-Model-Log')
 
@@ -32,7 +32,7 @@ class ComboBoxModel(object):
 
     def get_category_model(self):
         '''return the model for the category ComboBox'''
-        model = gtk.ListStore(str)
+        model = Gtk.ListStore(str)
         for item in self.category:
             model.append([item])
 
@@ -40,7 +40,7 @@ class ComboBoxModel(object):
 
     def get_priority_model(self):
         '''return the model for the categoty ComboBox'''
-        model = gtk.ListStore(str)
+        model = Gtk.ListStore(str)
         for item in self.priority:
             model.append([item])
             
@@ -52,12 +52,12 @@ class TasksModel(object):
         self.tasks =  tasks_list
 
     def get_model(self):
-        model = gtk.ListStore(
-                gobject.TYPE_INT,
-                gobject.TYPE_STRING,
-                gobject.TYPE_STRING,
-                gobject.TYPE_STRING,
-                gobject.TYPE_BOOLEAN)
+        model = Gtk.ListStore(
+                GObject.TYPE_INT,
+                GObject.TYPE_STRING,
+                GObject.TYPE_STRING,
+                GObject.TYPE_STRING,
+                GObject.TYPE_BOOLEAN)
 
         for o in self.tasks:
 

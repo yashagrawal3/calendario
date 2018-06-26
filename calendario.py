@@ -15,16 +15,21 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import gtk
-import pygtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
 import re
 from database import DataBase
 from model import ComboBoxModel, TasksModel
-from sugar.activity import activity, widgets
+from sugar3.activity import activity
+from sugar3.graphics.toolbarbox import ToolbarBox
+from sugar3.activity.widgets import ActivityToolbarButton
+from sugar3.graphics.toolbutton import ToolButton
+from sugar3.activity.widgets import StopButton
 from gettext import gettext as _
 from datetime import date, datetime
 import logging
-import pango
+from gi.repository import Pango
 
 log = logging.getLogger('Calendario-Log')
 
@@ -34,125 +39,125 @@ class CalendarioActivity(activity.Activity):
     def __init__(self, handle):
         '''Constructor'''
         activity.Activity.__init__(self, handle)
-        self.main_container = gtk.HBox()
-        toolbox = widgets.ActivityToolbox(self)
+        self.main_container = Gtk.HBox()
+        toolbox = ToolbarBox(self)
         self.set_toolbar_box(toolbox)
         toolbox.show()
         self.path = self.get_activity_root()
         ###left side###
-        self.left_container = gtk.VBox()
+        self.left_container = Gtk.VBox()
         d = datetime.today()
-        self.label_date = gtk.Label(d.strftime("%d %B %Y"))
-        self.calendar = gtk.Calendar()
+        self.label_date = Gtk.Label(label=d.strftime("%d %B %Y"))
+        self.calendar = Gtk.Calendar()
         self.calendar.connect('day-selected', self._day_selected_cb)
         self.calendar.connect('month-changed', self._mark_day_cb)
         self.calendar.connect('next-year', self._mark_day_cb)
         self.calendar.connect('prev-year', self._mark_day_cb)
         self.mark_day()
 
-        self.tool_frame = gtk.Frame(_("Tools"))
-        self.reminder_expander = gtk.Expander(_("Tasks reminder"))
-        self.query_expander = gtk.Expander(_("View by"))
-        self.tool_box = gtk.VBox()
+        self.tool_frame = Gtk.Frame()
+        self.reminder_expander = Gtk.Expander()
+        self.query_expander = Gtk.Expander()
+        self.tool_box = Gtk.VBox()
         
         #reminder
-        self.scroll_reminder = gtk.ScrolledWindow()
-        self.scroll_reminder.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        self.scroll_reminder = Gtk.ScrolledWindow()
+        self.scroll_reminder.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         self.scroll_reminder.set_size_request(-1, 170)
-        self.reminder_list = gtk.TreeView()
+        self.reminder_list = Gtk.TreeView()
         self.scroll_reminder.add(self.reminder_list)
         self.reminder_expander.add(self.scroll_reminder)
         
         #query
-        self.query_box = gtk.VBox()
-        self.label_q_priority = gtk.Label(_("Priority"))
-        self.label_q_category = gtk.Label(_("Category"))
+        self.query_box = Gtk.VBox()
+        self.label_q_priority = Gtk.Label(label=_("Priority"))
+        self.label_q_category = Gtk.Label(label=_("Category"))
 
         comboBoxModel = ComboBoxModel()
         cat_model = comboBoxModel.get_category_model()
         pri_model = comboBoxModel.get_priority_model()
-        cell = gtk.CellRendererText()
+        cell = Gtk.CellRendererText()
        
-        self.combobox_q_priority = gtk.ComboBox()
+        self.combobox_q_priority = Gtk.ComboBox()
         self.combobox_q_priority.pack_start(cell, True)
         self.combobox_q_priority.add_attribute(cell, 'text', 0)
-        self.combobox_q_category = gtk.ComboBox()
+        self.combobox_q_category = Gtk.ComboBox()
         self.combobox_q_category.pack_start(cell, True)
         self.combobox_q_category.add_attribute(cell, 'text', 0)
         self.combobox_q_category.set_model(cat_model)
         self.combobox_q_priority.set_model(pri_model)
-        self.filter_button = gtk.Button(_('Filter'))
+        self.filter_button = Gtk.Button(_('Filter'))
         self.filter_button.connect('clicked', self._filter_query_cb)
 
-        self.query_box.pack_start(self.label_q_priority, False)
-        self.query_box.pack_start(self.combobox_q_priority, False)
-        self.query_box.pack_start(self.label_q_category, False)
-        self.query_box.pack_start(self.combobox_q_category, False)
+        self.query_box.pack_start(self.label_q_priority, False, 0, 0)
+        self.query_box.pack_start(self.combobox_q_priority, False, 0, 0)
+        self.query_box.pack_start(self.label_q_category, False, 0, 0)
+        self.query_box.pack_start(self.combobox_q_category, False, 0, 0)
         self.query_box.pack_start(self.filter_button, True, True, 5)
         self.query_expander.add(self.query_box)
         
-        self.tool_box.pack_start(self.reminder_expander, False)
-        self.tool_box.pack_start(self.query_expander, False)
+        self.tool_box.pack_start(self.reminder_expander, False, 0, 0)
+        self.tool_box.pack_start(self.query_expander, False, 0, 0)
         self.tool_frame.add(self.tool_box)
         self.left_container.pack_start(self.label_date, False, False, 5)
-        self.left_container.pack_start(self.calendar, False)
+        self.left_container.pack_start(self.calendar, False, 0, 0)
         self.left_container.pack_start(self.tool_frame, True, True, 5)
 
         ###right side###
-        self.right_container = gtk.VBox()
-        self.tasks_frame = gtk.Frame(_("Tasks list"))
-        self.scroll_tasks = gtk.ScrolledWindow()
-        self.scroll_tasks.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        self.tasks_list = gtk.TreeView()
+        self.right_container = Gtk.VBox()
+        self.tasks_frame = Gtk.Frame()
+        self.scroll_tasks = Gtk.ScrolledWindow()
+        self.scroll_tasks.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        self.tasks_list = Gtk.TreeView()
         self.get_tasks()
         self.add_columns()
         self.scroll_tasks.add(self.tasks_list)
         self.tasks_frame.add(self.scroll_tasks)
 
         #options
-        self.options_expander = gtk.Expander(_("Options"))
-        self.options_box = gtk.HBox()
-        self.label_b_priority = gtk.Label(_("Priority"))
-        self.combobox_priority = gtk.ComboBox()
+        self.options_expander = Gtk.Expander()
+        self.options_box = Gtk.HBox()
+        self.label_b_priority = Gtk.Label(label=_("Priority"))
+        self.combobox_priority = Gtk.ComboBox()
         self.combobox_priority.pack_start(cell, True)
         self.combobox_priority.add_attribute(cell, 'text', 0)
-        self.label_b_category = gtk.Label(_("Category"))
-        self.combobox_category = gtk.ComboBox()
+        self.label_b_category = Gtk.Label(label=_("Category"))
+        self.combobox_category = Gtk.ComboBox()
         self.combobox_category.pack_start(cell, True)
         self.combobox_category.add_attribute(cell, 'text', 0)
         self.combobox_category.set_model(cat_model)
         self.combobox_priority.set_model(pri_model)
         
-        self.priority_box = gtk.VBox()
-        self.priority_box.pack_start(self.label_b_priority)
-        self.priority_box.pack_start(self.combobox_priority)
-        self.category_box = gtk.VBox()
-        self.category_box.pack_start(self.label_b_category)
-        self.category_box.pack_start(self.combobox_category)
+        self.priority_box = Gtk.VBox()
+        self.priority_box.pack_start(self.label_b_priority, True, True, 0)
+        self.priority_box.pack_start(self.combobox_priority, True, True, 0)
+        self.category_box = Gtk.VBox()
+        self.category_box.pack_start(self.label_b_category, True, True, 0)
+        self.category_box.pack_start(self.combobox_category, True, True, 0)
         self.options_box.pack_start(self.category_box, True, True, 5)
         self.options_box.pack_start(self.priority_box, True, True, 5)
         self.options_expander.add(self.options_box)
 
         #input
-        self.scroll_text = gtk.ScrolledWindow()
-        self.scroll_text.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        self.text_input = gtk.TextView()
+        self.scroll_text = Gtk.ScrolledWindow()
+        self.scroll_text.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        self.text_input = Gtk.TextView()
         self.text_input.set_size_request(0, 80)
         self.scroll_text.add(self.text_input)
-        self.save_button = gtk.Button(_("Add new"))
+        self.save_button = Gtk.Button(_("Add new"))
         self.save_button.connect('clicked', self._save_cb)
-        self.remove_button = gtk.Button(_("Remove"))
+        self.remove_button = Gtk.Button(_("Remove"))
         self.remove_button.connect('clicked', self._delete_row_cb)
-        self.buttons_box = gtk.VBox()
-        self.buttons_box.pack_start(self.save_button, False)
-        self.buttons_box.pack_start(self.remove_button, False)
-        self.input_box = gtk.HBox()
+        self.buttons_box = Gtk.VBox()
+        self.buttons_box.pack_start(self.save_button, False, 0, 0)
+        self.buttons_box.pack_start(self.remove_button, False, 0, 0)
+        self.input_box = Gtk.HBox()
         self.input_box.pack_start(self.scroll_text, True, True, 5)
-        self.input_box.pack_start(self.buttons_box, False)
+        self.input_box.pack_start(self.buttons_box, False, 0, 0)
 
 
         self.right_container.pack_start(self.tasks_frame, True, True, 5)
-        self.right_container.pack_start(self.options_expander, False, False)
+        self.right_container.pack_start(self.options_expander, False, False, 0)
         self.right_container.pack_start(self.input_box, False, False, 5)
 
         self.main_container.pack_start(self.left_container, False, False, 5) 
@@ -175,32 +180,32 @@ class CalendarioActivity(activity.Activity):
     def add_columns(self):
         '''Add columns to TreeView'''
         #for the tasks list
-        cell_text = gtk.CellRendererText() 
+        cell_text = Gtk.CellRendererText() 
         titles = (_('Tasks'), _('Category'), _('Priority'))
         i = 1
         for title in titles:
             #if the colum is the first
             if i == 1:            
-                column = gtk.TreeViewColumn(title, cell_text, markup=i)
+                column = Gtk.TreeViewColumn(title, cell_text, markup=i)
                 #sizes commented are for emuler testing
                 #column.set_min_width(300)
                 column.set_min_width(440)
             else:
-                column = gtk.TreeViewColumn(title, cell_text, text=i)
+                column = Gtk.TreeViewColumn(title, cell_text, text=i)
                 #column.set_min_width(100)
                 column.set_min_width(135)
             self.tasks_list.append_column(column)
             i = i + 1
 
-        cell_toggle = gtk.CellRendererToggle()
+        cell_toggle = Gtk.CellRendererToggle()
         cell_toggle.connect('toggled', self._toggle_row_cb)
-        column = gtk.TreeViewColumn('', cell_toggle, active=4)
+        column = Gtk.TreeViewColumn('', cell_toggle, active=4)
         self.tasks_list.append_column(column)
 
         #for the reminder
-        column = gtk.TreeViewColumn(titles[0], cell_text, text=1)
+        column = Gtk.TreeViewColumn(titles[0], cell_text, text=1)
         self.reminder_list.append_column(column)
-        column = gtk.TreeViewColumn(titles[2], cell_text, text=3)
+        column = Gtk.TreeViewColumn(titles[2], cell_text, text=3)
         self.reminder_list.append_column(column)
 
     def mark_day(self):
@@ -239,7 +244,7 @@ class CalendarioActivity(activity.Activity):
         '''Toggle button row'''
         model = self.tasks_list.get_model()
         row_iter = model.get_iter(path)
-        #row is a gtk.TreeModelRow()
+        #row is a Gtk.TreeModelRow()
         row = model[row_iter]
         row[4] = not row[4]
         #task, completed, id for the moment category and 
