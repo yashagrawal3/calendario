@@ -40,7 +40,7 @@ class CalendarioActivity(activity.Activity):
         '''Constructor'''
         activity.Activity.__init__(self, handle)
         self.main_container = Gtk.HBox()
-        toolbox = ToolbarBox(self)
+        toolbox = ToolbarBox()
         self.set_toolbar_box(toolbox)
         toolbox.show()
         self.path = self.get_activity_root()
